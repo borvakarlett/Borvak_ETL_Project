@@ -1,0 +1,23 @@
+use database bison_db;
+use warehouse bison_wh;
+create or replace schema amazon_vendor_schema;
+
+create or replace table stg_invoice_items as
+select * from AMAZON_VENDOR_ORDER_TO_CASH__SAMPLE.PUBLIC."InvoiceItems";
+
+create or replace table stg_calendar as
+select * from AMAZON_VENDOR_ORDER_TO_CASH__SAMPLE.PUBLIC."AmazonCalendar";
+
+create or replace table stg_catalog as
+select * from amazon_vendor_order_to_cash__sample.public."Catalog";
+
+create or replace table stg_payments as
+select * from amazon_vendor_order_to_cash__sample.public."Payments";
+
+create or replace table stg_shortage_claims as
+select * from amazon_vendor_order_to_cash__sample.public."ShortageClaims";
+
+create or replace table stg_price_claims as
+select * from amazon_vendor_order_to_cash__sample.public."PriceClaims";
+
+select * from stg_price_claims;
