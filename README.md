@@ -1,7 +1,7 @@
 # ELT - Amazon Vendor Analysis
-Tento projekt je zameraný na analýzu dodavateľských dát od Amazonu (Vendor Order-To-Cash). Cieľom projektu je spracovať dáta fakturáciách, platbách a reklamáciách do funkčného dimenzionálneho modelu typu Star Schema, ktorý umožňuje efektívnu analýzu finančnej výkonnosti.
+Tento projekt je zameraný na analýzu dodavateľských dát od Amazonu (Vendor Order-To-Cash). Cieľom projektu je spracovať dáta o fakturáciách, platbách a reklamáciách do funkčného dimenzionálneho modelu typu Star Schema, ktorý umožňuje efektívnu analýzu finančnej výkonnosti.
 
-## 1. Úvod a popis zdorjových dát
+## 1. Úvod a popis zdrojových dát
 Dataset pochádza zo Snowflake Marketplace od poskytovateľa Merchant AI. Obsahuje vzorku dát Amazon Vendor Cash-To-Cash, ktoré simulujú reálny biznis proces spoločnosti Amazon. Tento dataset som si vybrala, lebo vyhovuje požiadavkam projektu a ukazuje ako funguje veľký obchod medzi dodavateľom a Amazonom. Celý proces beží na tom, že sa pošle tovar do skladu Amazonu a následne je pripravená faktúra, v ktorej sa riešia prípadné problémy a proces končí zaplatením danej sumy.
 
 Analyzujú sa kľúčové aspekty:
@@ -37,7 +37,7 @@ Použitý bol dimenzionálny model typu Star Schema, ktorý je výhodný pre rý
 * **dim_payments** - detaily o platobných metódach a statuse, typ SCD 1 - prepísanie pri zmene statusu platby
   
 **Fakty:**
-* **fact_invoice_items** - centrálna tabuľka tvorica informácie faktúrach s pridaním údajov o reklamáciách a platbách
+* **fact_invoice_items** - centrálna tabuľka tvorica informácie o faktúrach s pridaním údajov o reklamáciách a platbách
   * Hlavný kľúč: id_invoiceitems
   * Cudzie kľúče:
     *   ASIN - prepojenie s tabuľkou produktov
@@ -71,16 +71,16 @@ Z nasledujúcich staging tabuliek boli nahrané dáta do dimenzií a faktovej ta
 * stg_invoice_items a stg_payments -> dim_location a dim_payments
 * stg_invoice_items a ostatné staging tabuľky -> fact_invoice_items
 
-Ako validáciu dát bolo urobená kontrola, či počet riadkov stg_invoice_items a fact_invoice_items sa zhoduje, skontrolovalo sa či dodatočné výpočty majú správny výsledok a tiež či sa dáta preniesli správne. Pomocou jednoduchého *select* príkazu sa všetko skontrolovalo.
+Ako validácia dát bolo urobená kontrola, či počet riadkov stg_invoice_items a fact_invoice_items sa zhoduje, skontrolovalo sa či dodatočné výpočty majú správny výsledok a tiež či sa dáta preniesli správne. Pomocou jednoduchého *select* príkazu sa všetko skontrolovalo.
 ```
 select
     (select count(*) from stg_invoice_items)  as staging_count,
     (select count(*) from fact_invoice_items) as fact_count;
 ```
 ### Transform
-V tejto fáze dochádza k premene surových dát v staging na informácie s pridanou hodnotou. Tiež to dojde k očiste dát ako odstránení duplicít a nepotrebných polí, zabezpečenie správnych dátových typov a pridanie nových metrík.
+V tejto fáze dochádza k premene surových dát v staging na informácie s pridanou hodnotou. Tiež to dojde k očiste dát ako odstránenie duplicít a nepotrebných polí, zabezpečenie správnych dátových typov a pridanie nových metrík.
 
-**dim_product** je dimenzia, ktorá spája technické parametre produktov s ich biznis údaje ako značka a kategória. Bola naplnená použitím staging tabuľky stg_catalog. Dôležitým krokom pri tejto tabuľke bolo generovanie primárneho kľúča cez funkciu *row_number()*, ktorá bola nazvaná id_product. Vďaka tomu má každý produkt svoje unikátne ID, čo uľahčuje spájanie s ostatnými tabuľkami a zabezpečuje poriadok v modeli. Dimenzia je navrhnutá ako SCD Typ 0. Vychádza sa z predpokladu, že základné atribúty produktu, ako sú EAN alebo dátum vydania, sú nemenné. Ak by sa v systéme zmenila cena, berie sa ako aktuálnu hodnota bez toho, aby sa sledovala jej stará históriu v tejto tabuľke. Cez vnútorný dopyt som si vybrala len tie stĺpce, ktoré sú naozaj dôležité, aby tabuľka nebola zbytočne neprehľadná.
+**dim_product** je dimenzia, ktorá spája technické parametre produktov s ich biznis údajmi ako značka a kategória. Bola naplnená použitím staging tabuľky stg_catalog. Dôležitým krokom pri tejto tabuľke bolo generovanie primárneho kľúča cez funkciu *row_number()*, ktorá bola nazvaná id_product. Vďaka tomu má každý produkt svoje unikátne ID, čo uľahčuje spájanie s ostatnými tabuľkami a zabezpečuje poriadok v modeli. Dimenzia je navrhnutá ako SCD Typ 0. Vychádza sa z predpokladu, že základné atribúty produktu, ako sú EAN alebo dátum vydania, sú nemenné. Ak by sa v systéme zmenila cena, berie sa ako aktuálna hodnota bez toho, aby sa sledovala jej stará históriu v tejto tabuľke. Cez vnútorný dopyt boli vybrané len tie stĺpce, ktoré sú naozaj dôležité, aby tabuľka nebola neprehľadná.
 ```
 create or replace table dim_product as(
 select
@@ -117,7 +117,7 @@ from (select distinct "CountryCode","Marketplace","Company","Payee" from stg_inv
 );
 ```
 
-**dim_payments** je dimenzia, ktorá poskytuje detailný pohľad na to, ako sú na tom peniaze a v akom stave sú platby. Transformácia využíva dáta zo stg_payments. Návrh sa zameriava na to, aby v tabuľke neboli duplicity v číslach platieb, čo sa vyriešilo cez *select distinct*. Dimenzia je typu SCD Typ 1 – toto riešenie bolo zvolené, pretože ak sa status platby zmení, pôvodná hodnota sa jednoducho prepíše. V reporte tak vždy vidno aktuálny stav bez zbytočnej histórie.
+**dim_payments** je dimenzia, ktorá poskytuje detailný pohľad na to, ako sú na tom peniaze a v akom stave sú platby. Transformácia využíva dáta zo stg_payments. Návrh sa zameriava na to, aby v tabuľke neboli duplicity v číslach platieb, čo sa vyriešilo cez *select distinct*. Dimenzia je typu SCD Typ 1 – toto riešenie bolo zvolené, pretože ak sa status platby zmení, pôvodná hodnota sa jednoducho prepíše. Takto vždy aktuálny stav bez zbytočnej histórie.
 ```
 create or replace table dim_payments as(
 select
@@ -137,7 +137,7 @@ from (select distinct "PaymentNumber","PaymentStatus","PaymentType","PaymentVoid
 );
 ```
 
-**dim_date** je dimenzia, ktorá predstavuje časovú os celého modelu. Je dôležitá pre sledovanie predajov a logistiky v čase. Čerpá dáta zo staging tabuľky stg_calendar, ktorá obsahuje časové atribúty. Cez operátor *select distinct* je zabezpečené, že každý deň tvorí v tabuľke jeden unikátny záznam, aby sa vyhlo duplicite dát pri spájaní s faktami. Táto dimenzia je SCD Typ 0, pretože údaje prislúchajúce ku konkrétnemu dátumu sú statické a nebudú sa v budúcnosti meniť.
+**dim_date** je dimenzia, ktorá funguje ako kalendár celého modelu a je dôležitá na to, aby sa vedeli sledovať predaje alebo reklamácie v čase. Čerpá dáta zo staging tabuľky stg_calendar, ktorá obsahuje informácie o dňoch, mesiacoch a rokoch. Bol použitý príkaz *select distinct*, aby bol v tabuľke pre každý kalendárny deň len jeden riadok, vďaka tomu sa vyhne duplicitám pri spájaní s hlavnou tabuľkou faktov. Táto dimenzia je nastavená ako SCD Typ 0, pretože údaje o dátumoch sú statické a nepredpokladá sa, že by sa niekedy zmenili.
 ```
 create or replace table dim_date as(
 select distinct
@@ -162,16 +162,16 @@ from stg_calendar
 );
 ```
 
-**fact_invoice_items** je faktová tabuľka a predstavuje centrálnu časť celej Star schémy. Jej vytvorenie bolo najnáročnejšou fázou ELT procesu, pretože vyžadovalo integráciu dát zo siedmich rôznych zdrojov. Základom tabuľky sú transakčné dáta o riadkoch faktúr zo stg_invoice_items. Avšak na získanie pohľad na každú transakciu, bolo nutné k týmto dátam pripojiť informácie z ostatných častí biznis procesu pomocou viacerých *left join* operácií:
+**fact_invoice_items** je faktová tabuľka a predstavuje centrálnu časť celej Star schémy. Jej vytvorenie bolo najnáročnejšou fázou ELT procesu, pretože vyžadovalo integráciu dát zo siedmich rôznych zdrojov. Základom tabuľky sú transakčné dáta o riadkoch faktúr zo stg_invoice_items. Avšak na získanie pohľadu na každú transakciu, bolo nutné k týmto dátam pripojiť informácie z ostatných častí biznis procesu pomocou viacerých *left join* operácií:
    * Prepojenie na dimenzie: Faktúry sú prepojené s produktmi, dátumami, miestami a platbami cez ich technické kľúče.
-   * Zahrnutie reklamácií (Shortage & Price Claims): Keďže k jednej položke môže byť viac reklamácií, muselo sa ich v poddopytoch sčítať pomocou *sum()*. Tým sa zabezpečilo, že sa vo faktovej tabuľke uvidí celková strata, ale riadky             faktúry sa v tabuľke nezduplikujú.
-   * Finančné vyrovnanie: Podobným spôsobom sa integrovali dáta o reálne prijatých platbách (AmountPaid), čo umožňuje priame porovnanie fakturovanej sumy s cash-flow.
+   * Zahrnutie reklamácií: Keďže k jednej položke môže byť viac reklamácií, muselo sa ich v poddopytoch sčítať pomocou *sum()*. Tým sa zabezpečilo, že sa vo faktovej tabuľke uvidí celková strata, ale riadky faktúry sa v tabuľke                   nezduplikujú.
+   * Finančné vyrovnanie: Podobným spôsobom sa integrovali dáta o reálne prijatých platbách, čo umožňuje priame porovnanie fakturovanej sumy s cash-flow.
      
 Podľa požiadaviek zadania boli do faktovej tabuľky implementované analytické funkcie, ktoré pridávajú modelu dynamický charakter:
-  * ROW_NUMBER(): Bol použitý na vytvorenie unikátneho ID pre každý riadok a tiež na očíslovanie položiek v rámci jednej faktúry
-  * LAG(): je tu veľmi užitočná, lebo v každom riadku ukáže nákupnú cenu produktu z jeho predchádzajúcej faktúry, vďaka čomu sa môže sledovať, či cena stúpla alebo klesla.
+  * ROW_NUMBER(): Bol použitý na vytvorenie unikátneho ID pre každý riadok a tiež na očíslovanie položiek v rámci jednej faktúry.
+  * LAG(): je veľmi užitočná, lebo v každom riadku ukáže nákupnú cenu produktu z predchádzajúcej faktúry, vďaka čomu sa môže sledovať, či cena stúpla alebo klesla.
     
-Priamo pri nahrávaní sa vypočíta metrika Line_Amount - množstvo vynásobené cenou. Tento výpočet výrazne zrýchlil tvorbu grafov a zabezpečil, že výsledky budú v reportoch vždy rovnaké.
+Priamo pri nahrávaní sa vypočíta metrika Line_Amount, čo je množstvo vynásobené cenou. Tento výpočet výrazne zrýchlil tvorbu grafov a zabezpečil, že výsledky budú v vždy rovnaké.
 ```
 create or replace table fact_invoice_items as(
 select
@@ -288,7 +288,7 @@ order by asin desc
 limit 10;
 ```
 
-Graf ukazuje 10 produktov, ktoré najčastejšie menia svoju nákupnú cenu. Napríklad produkt na prvom mieste zmenil cenu viac ako 200-krát. Pre firmu je to signál, že pri týchto položkách neexistuje stabilná dohoda o cene a nákupca by sa mal pokúsiť vyjednať pevnejšie podmienky.
+Graf ukazuje 10 produktov, ktoré najčastejšie menia svoju nákupnú cenu. Napríklad produkt na prvom mieste zmenil cenu viac ako 200-krát. Pre firmu je to signál, že pri týchto položkách neexistuje stabilná dohoda o cene a kupca by sa mal pokúsiť vyjednať pevnejšie podmienky.
 
 ### 3. Straty podľa trhov
 
@@ -306,7 +306,7 @@ group by l."Marketplace"
 order by TotalShortageValue desc;
 ```
 
-Najväčší stĺpec vidíme pri trhu v USA. Znamená to, že tam dochádza k najväčším stratám kvôli chýbajúcemu tovaru (viac ako 500-tisíc). Nemecko a Británia sú na tom oveľa lepšie. Je to jasný dôkaz, že logistika v USA potrebuje lepšiu kontrolu.
+Najväčší stĺpec vidíme pri trhu v USA. Znamená to, že tam dochádza k najväčším stratám kvôli chýbajúcemu tovaru, viac ako 500-tisíc. Nemecko a Británia sú na tom oveľa lepšie. Je to dôkaz, že logistika v USA potrebuje lepšiu kontrolu.
 
 ### 4. Najlepšie zarábajúce značky
 
@@ -323,7 +323,7 @@ group by p.Brand
 order by TotalSalesValue desc
 limit 5;
 ```
-Značka iRobot je výrazne najlepšia a tvorí hlavnú časť príjmov, vyše 113 miliónov. Ostatné značky ako Nespresso sú úspešné, ale v porovnaní s iRobotom sú oveľa menšie. Táto značka je kľúčová, ak by sa s ňou skončila spolupráca, prišlo by o väčšinu tržieb.
+Značka iRobot je výrazne najlepšia a tvorí hlavnú časť príjmov, vyše 113 miliónov. Ostatné značky ako Nespresso sú úspešné, ale v porovnaní s iRobotom sú oveľa menšie. Táto značka je kľúčová, ak by sa s ňou skončila spolupráca, prišlo by sa o väčšinu tržieb.
 
 ### 5. Celkový objem faktúr po rokoch
 
@@ -355,7 +355,7 @@ join dim_payments p on f.id_payment = p.payment_id
 group by p.PaymentCurrency
 order by CelkovaSuma desc;
 ```
-Tento graf dáva prehľad o tom, ako sme závislí od jednotlivých svetových mien. Najväčší stĺpec je USD, čo znamená, že väčšina obchodov prebieha v dolároch. Je to dôležitá informácia, pretože ak by dolár náhle oslabol, zisky po prepočte na inú menu by mohli klesnúť. Graf teda pomáha sledovať, kde je najväčšiu finančná sila a kde sa treba mať na pozore pred zmenami kurzov.
+Tento graf dáva prehľad o závislosti od jednotlivých svetových mien. Najväčší stĺpec je USD, čo znamená, že väčšina obchodov prebieha v dolároch. Je to dôležitá informácia, pretože ak by dolár náhle oslabol, zisky po prepočte na inú menu by mohli klesnúť. Graf teda pomáha sledovať, kde je najväčšiu finančná sila a kde sa treba mať na pozore pred zmenami kurzov.
 
 
 **Autor:** Arlett Borvák
