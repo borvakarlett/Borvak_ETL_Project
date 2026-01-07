@@ -43,3 +43,11 @@ join dim_date d on d.date=f.date
 group by d.year
 order by d.year;
 
+
+select 
+p.PaymentCurrency,
+sum(f.Line_Amount) as CelkovaSuma
+from fact_invoice_items f
+join dim_payments p on f.id_payment = p.payment_id
+group by p.PaymentCurrency
+order by CelkovaSuma desc;
