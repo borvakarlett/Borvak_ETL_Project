@@ -252,7 +252,7 @@ left join (select "ASIN" as ASIN_KEY, MAX(id_product) as id_product
 ```
 ## 4. Vizualizácia dát
 V Dashboarde sa tu z tabuliek pripravili grafy, z ktorých môžeme analyzovať dáta.
-1[dashboard](img/dashboard.png)
+![dashboard](img/dashboard.png)
 
 ### 1. Vývoj nákupných cien v čase
 
