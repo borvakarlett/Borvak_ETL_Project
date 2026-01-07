@@ -49,7 +49,7 @@ Použitý bol dimenzionálny model typu Star Schema, ktorý je výhodný pre rý
     * InvoiceItemsSequence(row_number()) - sekvencia položiek vo faktúre
     * PreviousUnitCost(lag()) - predchádzajúca cena pre analýzu cenových zmien
 
-## 3. ETL proces
+## 3. ELT proces
 ELT proces má tri fázy - extrahovanie, načítanie a transformácia. Následne je popísaný ich postup v prostredí Snowflake.
 
 ### Extract
